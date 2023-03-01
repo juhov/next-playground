@@ -1,48 +1,78 @@
+import { componentStash } from "@/app/page";
 import { Component, Item } from "@/pages/api/page";
 import { Suspense } from "react";
 import ItemsLoader from "./ItemsLoader";
 
-export async function Renderer({
-  componentOrItem,
-}: {
-  componentOrItem: Component | Item;
-}) {
+type RendererProps =
+  | {
+      item: Item;
+      componentId?: never;
+    }
+  | {
+      item?: never;
+      componentId: Component["id"];
+    };
+
+export async function Renderer({ item, componentId }: RendererProps) {
+  let component: Component | undefined;
+
+  /**
+   * If we are rendering a component, then we need to find it from the stash.
+   */
+  if (componentId) {
+    const stashedComponent = componentStash.find(
+      (component) => component.id === componentId
+    );
+    if (stashedComponent) {
+      component = stashedComponent;
+    }
+  }
+
   /**
    * Containers
    */
-  if ("items" in componentOrItem) {
-    const component = componentOrItem;
-
+  if (component) {
     let items = component.items;
     const query = component.query;
+    const hasMissingChildren = items.length === 0 && query;
+
+    if (hasMissingChildren) {
+      componentStash.push(component);
+    }
 
     const Children = () => {
-      if (items.length > 0) {
-        return (
-          <>
-            {items.map((item) => (
-              // @ts-expect-error Server Component
-              <Renderer key={item.id} componentOrItem={item} />
-            ))}
-          </>
-        );
-      }
-
-      if (query) {
+      if (hasMissingChildren) {
         // @ts-expect-error Server Component
-        return <ItemsLoader query={query} />;
+        return <ItemsLoader query={query} componentId={component.id} />;
       }
 
-      return <div>No items</div>;
+      const returnedChildren = [] as React.ReactElement[];
+
+      for (const item of items) {
+        if ("items" in item) {
+          componentStash.push(item);
+
+          returnedChildren.push(
+            // @ts-expect-error Server Component
+            <Renderer key={item.id} componentId={item.id} />
+          );
+        } else {
+          returnedChildren.push(
+            // @ts-expect-error Server Component
+            <Renderer key={item.id} item={item} />
+          );
+        }
+      }
+
+      return returnedChildren;
     };
 
     switch (component.type) {
       case "container-a":
         return (
           <ContainerA>
-            <Suspense
-              fallback={`Loading... (Container A, defaultItemType: ${component.defaultItemType})`}
-            >
+            <Suspense fallback={<Skeletons type={component.defaultItemType} />}>
+              {/* @ts-expect-error Server Component */}
               <Children />
             </Suspense>
           </ContainerA>
@@ -50,9 +80,8 @@ export async function Renderer({
       case "container-b":
         return (
           <ContainerB>
-            <Suspense
-              fallback={`Loading... (Container B, defaultItemType: ${component.defaultItemType})`}
-            >
+            <Suspense fallback={<Skeletons type={component.defaultItemType} />}>
+              {/* @ts-expect-error Server Component */}
               <Children />
             </Suspense>
           </ContainerB>
@@ -60,12 +89,10 @@ export async function Renderer({
       default:
         return <div>Unknown component</div>;
     }
-  } else {
+  } else if (item) {
     /**
      * Items
      */
-    const item = componentOrItem;
-
     switch (item.type) {
       case "red":
         return <ItemRed item={item} />;
@@ -74,6 +101,8 @@ export async function Renderer({
       default:
         return <div>Unknown item</div>;
     }
+  } else {
+    return <div>Unknown</div>;
   }
 }
 
@@ -109,4 +138,41 @@ function ItemRed({ item }: { item: Item }) {
       <div>{item.title}</div>
     </div>
   );
+}
+
+function ItemBlueSkeleton() {
+  return (
+    <div className="item blue">
+      <div>...</div>
+    </div>
+  );
+}
+
+function ItemRedSkeleton() {
+  return (
+    <div className="item red">
+      <div>...</div>
+    </div>
+  );
+}
+
+function Skeletons({ type }: { type: Component["defaultItemType"] }) {
+  switch (type) {
+    case "red":
+      return (
+        <>
+          <ItemRedSkeleton />
+          <ItemRedSkeleton />
+        </>
+      );
+    case "blue":
+      return (
+        <>
+          <ItemBlueSkeleton />
+          <ItemBlueSkeleton />
+        </>
+      );
+    default:
+      return <div>Unknown item</div>;
+  }
 }
