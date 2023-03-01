@@ -1,91 +1,106 @@
-import Image from 'next/image'
-import { Inter } from '@next/font/google'
-import styles from './page.module.css'
+import { Component, Item, Page } from "@/pages/api/page";
+import { Suspense } from "react";
 
-const inter = Inter({ subsets: ['latin'] })
+export default async function Home() {
+  const page = await fetch("http://localhost:3000/api/page", {
+    cache: "no-cache",
+  });
+  const pageData = (await page.json()) as Page;
 
-export default function Home() {
   return (
-    <main className={styles.main}>
-      <div className={styles.description}>
-        <p>
-          Get started by editing&nbsp;
-          <code className={styles.code}>src/app/page.tsx</code>
-        </p>
-        <div>
-          <a
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{' '}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className={styles.vercelLogo}
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
-        </div>
-      </div>
+    <div>
+      {pageData.components.map((component) => (
+        <Suspense key={component.id} fallback="Loading...">
+          {/* @ts-expect-error Server Component */}
+          <Renderer componentOrItem={component} />
+        </Suspense>
+      ))}
+    </div>
+  );
+}
 
-      <div className={styles.center}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-        <div className={styles.thirteen}>
-          <Image src="/thirteen.svg" alt="13" width={40} height={31} priority />
-        </div>
-      </div>
+async function Renderer({
+  componentOrItem,
+}: {
+  componentOrItem: Component | Item;
+}) {
+  /**
+   * Containers
+   */
+  if ("items" in componentOrItem) {
+    const component = componentOrItem;
 
-      <div className={styles.grid}>
-        <a
-          href="https://beta.nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={inter.className}>
-            Docs <span>-&gt;</span>
-          </h2>
-          <p className={inter.className}>
-            Find in-depth information about Next.js features and API.
-          </p>
-        </a>
+    let items = component.items;
+    const query = component.query;
 
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={inter.className}>
-            Templates <span>-&gt;</span>
-          </h2>
-          <p className={inter.className}>Explore the Next.js 13 playground.</p>
-        </a>
+    if (items.length === 0 && query) {
+      const response = await fetch(`http://localhost:3000/api/component`, {
+        cache: "no-cache",
+      });
+      const componentData = (await response.json()) as Component;
+      items = componentData.items;
+    }
 
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={inter.className}>
-            Deploy <span>-&gt;</span>
-          </h2>
-          <p className={inter.className}>
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
-    </main>
-  )
+    const children = items.map((item) => (
+      // @ts-expect-error Server Component
+      <Renderer key={item.id} componentOrItem={item} />
+    ));
+
+    switch (component.type) {
+      case "container-a":
+        return <ContainerA>{children}</ContainerA>;
+      case "container-b":
+        return <ContainerB>{children}</ContainerB>;
+      default:
+        return <div>Unknown component</div>;
+    }
+  } else {
+    /**
+     * Items
+     */
+    const item = componentOrItem;
+
+    switch (item.type) {
+      case "red":
+        return <ItemRed item={item} />;
+      case "blue":
+        return <ItemBlue item={item} />;
+      default:
+        return <div>Unknown item</div>;
+    }
+  }
+}
+
+function ContainerA({ children }: { children: React.ReactNode }) {
+  return (
+    <fieldset>
+      <legend>Container A</legend>
+      <div>{children}</div>
+    </fieldset>
+  );
+}
+
+function ContainerB({ children }: { children: React.ReactNode }) {
+  return (
+    <fieldset>
+      <legend>Container B</legend>
+      <div>{children}</div>
+    </fieldset>
+  );
+}
+
+function ItemBlue({ item }: { item: Item }) {
+  return (
+    <div className="item blue">
+      <div>{item.title}</div>
+    </div>
+  );
+}
+
+function ItemRed({ item }: { item: Item }) {
+  return (
+    <div className="item red">
+      <div>{item.title}</div>
+    </div>
+  );
 }
