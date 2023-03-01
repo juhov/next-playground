@@ -1,4 +1,6 @@
 import { Component, Item } from "@/pages/api/page";
+import { Suspense } from "react";
+import ItemsLoader from "./ItemsLoader";
 
 export async function Renderer({
   componentOrItem,
@@ -14,24 +16,47 @@ export async function Renderer({
     let items = component.items;
     const query = component.query;
 
-    if (items.length === 0 && query) {
-      const response = await fetch(`http://localhost:3000/api/component`, {
-        cache: "no-cache",
-      });
-      const componentData = (await response.json()) as Component;
-      items = componentData.items;
-    }
+    const Children = () => {
+      if (items.length > 0) {
+        return (
+          <>
+            {items.map((item) => (
+              // @ts-expect-error Server Component
+              <Renderer key={item.id} componentOrItem={item} />
+            ))}
+          </>
+        );
+      }
 
-    const children = items.map((item) => (
-      // @ts-expect-error Server Component
-      <Renderer key={item.id} componentOrItem={item} />
-    ));
+      if (query) {
+        // @ts-expect-error Server Component
+        return <ItemsLoader query={query} />;
+      }
+
+      return <div>No items</div>;
+    };
 
     switch (component.type) {
       case "container-a":
-        return <ContainerA>{children}</ContainerA>;
+        return (
+          <ContainerA>
+            <Suspense
+              fallback={`Loading... (Container A, defaultItemType: ${component.defaultItemType})`}
+            >
+              <Children />
+            </Suspense>
+          </ContainerA>
+        );
       case "container-b":
-        return <ContainerB>{children}</ContainerB>;
+        return (
+          <ContainerB>
+            <Suspense
+              fallback={`Loading... (Container B, defaultItemType: ${component.defaultItemType})`}
+            >
+              <Children />
+            </Suspense>
+          </ContainerB>
+        );
       default:
         return <div>Unknown component</div>;
     }

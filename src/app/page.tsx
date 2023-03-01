@@ -11,10 +11,8 @@ export default async function Home() {
   return (
     <div>
       {pageData.components.map((component) => (
-        <Suspense key={component.id} fallback="Loading...">
-          {/* @ts-expect-error Server Component */}
-          <Renderer componentOrItem={component} />
-        </Suspense>
+        // @ts-expect-error Server Component
+        <Renderer key={component.id} componentOrItem={component} />
       ))}
     </div>
   );
