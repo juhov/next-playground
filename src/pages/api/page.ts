@@ -12,12 +12,19 @@ export type Component = {
   defaultItemType?: string;
   query?: string;
   items: (Item | Component)[];
+  notUsedData?: string;
 };
 
 export type Page = {
   id: string;
   components: Component[];
 };
+
+export const loremIpsum = () =>
+  Array.from(
+    { length: 5000 },
+    (_, i) => `Lorem ipsum dolor sit amet ${i}.`
+  ).join(" ");
 
 export default function handler(
   req: NextApiRequest,
@@ -97,6 +104,7 @@ export default function handler(
         defaultItemType: "red",
         query: "http://localhost:3000/api/component/300",
         items: [],
+        notUsedData: loremIpsum(),
       },
     ],
   });

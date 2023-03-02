@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { Component } from "../page";
+import { Component, loremIpsum } from "../page";
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -24,6 +24,7 @@ export default async function handler(
             type: "red",
           },
         ],
+        notUsedData: loremIpsum(),
       });
     case "200":
       return res.status(200).json({
