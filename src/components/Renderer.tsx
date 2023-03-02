@@ -1,6 +1,5 @@
 import { Component, Item } from "@/pages/api/page";
 import { Suspense } from "react";
-import ItemsLoader from "./ItemsLoader";
 
 export async function Renderer({
   componentOrItem,
@@ -8,7 +7,7 @@ export async function Renderer({
   componentOrItem: Component | Item;
 }) {
   /**
-   * Containers
+   * ▶️▶️▶️ Kyseessä on komponentti
    */
   if ("items" in componentOrItem) {
     const component = componentOrItem;
@@ -16,26 +15,36 @@ export async function Renderer({
     let items = component.items;
     const query = component.query;
 
-    const Children = () => {
+    /**
+     * Komponentin sisällä olevien itemien renderöinti.
+     */
+    const ComponentItems = async () => {
+      // Jos komponentilla on itemeitä, renderöi ne...
       if (items.length > 0) {
-        return (
-          <>
-            {items.map((item) => (
-              // @ts-expect-error Server Component
-              <Renderer key={item.id} componentOrItem={item} />
-            ))}
-          </>
-        );
+        return items.slice(0, 2).map((item) => (
+          // @ts-expect-error Server Component
+          <Renderer key={item.id} componentOrItem={item} />
+        ));
       }
 
+      // ...jos ei ole, mutta komponentilla on query, niin lataa itemit.
       if (query) {
-        // @ts-expect-error Server Component
-        return <ItemsLoader query={query} />;
+        const response = await fetch(query, {
+          cache: "no-cache",
+        });
+        const componentData = (await response.json()) as Component;
+        const items = componentData.items;
+
+        return items.slice(0, 2).map((item) => (
+          // @ts-expect-error Server Component
+          <Renderer key={item.id} componentOrItem={item} />
+        ));
       }
 
       return <div>No items</div>;
     };
 
+    // Yhdistä CAPIN kontaineri oikeaan UI-kirjaston komponenttiin.
     switch (component.type) {
       case "container-a":
         return (
@@ -43,7 +52,8 @@ export async function Renderer({
             <Suspense
               fallback={`Loading... (Container A, defaultItemType: ${component.defaultItemType})`}
             >
-              <Children />
+              {/* @ts-expect-error Server Component */}
+              <ComponentItems />
             </Suspense>
           </ContainerA>
         );
@@ -53,7 +63,8 @@ export async function Renderer({
             <Suspense
               fallback={`Loading... (Container B, defaultItemType: ${component.defaultItemType})`}
             >
-              <Children />
+              {/* @ts-expect-error Server Component */}
+              <ComponentItems />
             </Suspense>
           </ContainerB>
         );
@@ -62,20 +73,36 @@ export async function Renderer({
     }
   } else {
     /**
-     * Items
+     * ▶️▶️▶️ Kyseessä on komponentin itemi
      */
     const item = componentOrItem;
 
+    // Yhdistä CAPIN itemi oikeaan UI-kirjaston komponenttiin.
     switch (item.type) {
       case "red":
-        return <ItemRed item={item} />;
+        const redItemProps: ItemRedProps = {
+          title: item.title,
+        };
+
+        return <ItemRed {...redItemProps} />;
+
       case "blue":
-        return <ItemBlue item={item} />;
+        const blueItemProps: ItemRedProps = {
+          title: item.title,
+        };
+
+        return <ItemBlue {...blueItemProps} />;
       default:
         return <div>Unknown item</div>;
     }
   }
 }
+
+/**
+ * ----------- UI Kirjasto ↓ -----------
+ */
+
+// Containers
 
 function ContainerA({ children }: { children: React.ReactNode }) {
   return (
@@ -95,18 +122,26 @@ function ContainerB({ children }: { children: React.ReactNode }) {
   );
 }
 
-function ItemBlue({ item }: { item: Item }) {
+// Items
+
+type ItemBlueProps = {
+  title: string;
+};
+function ItemBlue({ title }: ItemBlueProps) {
   return (
     <div className="item blue">
-      <div>{item.title}</div>
+      <div>{title}</div>
     </div>
   );
 }
 
-function ItemRed({ item }: { item: Item }) {
+type ItemRedProps = {
+  title: string;
+};
+function ItemRed({ title }: ItemRedProps) {
   return (
     <div className="item red">
-      <div>{item.title}</div>
+      <div>{title}</div>
     </div>
   );
 }

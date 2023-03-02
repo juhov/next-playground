@@ -1,6 +1,7 @@
 import { Page } from "@/pages/api/page";
-import { Suspense } from "react";
 import { Renderer } from "../components/Renderer";
+
+export const dynamic = "force-dynamic";
 
 export default async function Home() {
   const page = await fetch("http://localhost:3000/api/page", {

@@ -41,6 +41,16 @@ export default function handler(
             title: "Item 2",
             type: "red",
           },
+          {
+            id: "extra-1",
+            title: "Extra 1",
+            type: "red",
+          },
+          {
+            id: "extra-2",
+            title: "Extra 2",
+            type: "red",
+          },
         ],
       },
       {
