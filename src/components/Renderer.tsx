@@ -49,9 +49,7 @@ export async function Renderer({
       case "container-a":
         return (
           <ContainerA>
-            <Suspense
-              fallback={`Loading... (Container A, defaultItemType: ${component.defaultItemType})`}
-            >
+            <Suspense fallback={<FallbackRenderer component={component} />}>
               {/* @ts-expect-error Server Component */}
               <ComponentItems />
             </Suspense>
@@ -60,9 +58,7 @@ export async function Renderer({
       case "container-b":
         return (
           <ContainerB>
-            <Suspense
-              fallback={`Loading... (Container B, defaultItemType: ${component.defaultItemType})`}
-            >
+            <Suspense fallback={<FallbackRenderer component={component} />}>
               {/* @ts-expect-error Server Component */}
               <ComponentItems />
             </Suspense>
@@ -96,6 +92,22 @@ export async function Renderer({
         return <div>Unknown item</div>;
     }
   }
+}
+
+type FallbackRendererProps = {
+  component: Component;
+};
+function FallbackRenderer({ component }: FallbackRendererProps) {
+  return (
+    <div>
+      Loading... Container B, defaultItemType: {component.defaultItemType}{" "}
+      {component.notUsedData && (
+        <>
+          notUsedData: {component.notUsedData?.split(" ").slice(0, 2).join(" ")}
+        </>
+      )}
+    </div>
+  );
 }
 
 /**
