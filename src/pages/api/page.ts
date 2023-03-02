@@ -91,6 +91,13 @@ export default function handler(
         query: "http://localhost:3000/api/component/100",
         items: [],
       },
+      {
+        id: "100",
+        type: "container-b",
+        defaultItemType: "red",
+        query: "http://localhost:3000/api/component/300",
+        items: [],
+      },
     ],
   });
 }

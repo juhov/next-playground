@@ -7,7 +7,7 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse<Component>
 ) {
-  await sleep(5000);
+  await sleep(3000);
 
   switch (req.query.id) {
     case "100":
@@ -37,6 +37,30 @@ export default async function handler(
             id: "i8",
             title: "Item 8",
             type: "blue",
+          },
+        ],
+      });
+    case "300":
+      return res.status(200).json({
+        items: [
+          {
+            id: "200",
+            type: "container-b",
+            defaultItemType: "blue",
+            query: "http://localhost:3000/api/component/3001",
+            items: [],
+          },
+        ],
+      });
+    case "3001":
+      return res.status(200).json({
+        items: [
+          {
+            id: "200",
+            type: "container-a",
+            defaultItemType: "blue",
+            query: "http://localhost:3000/api/component/200",
+            items: [],
           },
         ],
       });
